@@ -6,9 +6,11 @@ import { audioCtx, stopAll } from '@/lib/audio';
 import PadGrid from '@/components/PadGrid';
 import Library from '@/components/Library';
 import Scenes from '@/components/Scenes';
+import Sequencer from '@/components/Sequencer';
 
 const TABS = [
   { id: 'pads', label: 'Pads', icon: '▦' },
+  { id: 'beat', label: 'Beat', icon: '⋮⋮' },
   { id: 'samples', label: 'Samples', icon: '✂' },
   { id: 'scenes', label: 'Scenes', icon: '◉' },
 ] as const;
@@ -47,14 +49,19 @@ export default function Home() {
               {tab === 'pads' && (
                 <>
                   {s.samples.length === 0 && (
-                    <button onClick={() => setTab('samples')} className="w-full mb-4 rounded-2xl bg-gradient-to-br from-rose-500/20 to-violet-500/20 border border-white/10 p-4 text-left">
-                      <p className="font-semibold">Start here →</p>
-                      <p className="text-sm text-zinc-400">Upload a song or video, clip a few samples, drop them on pads.</p>
-                    </button>
+                    <div className="mb-4 rounded-2xl bg-gradient-to-br from-rose-500/20 to-violet-500/20 border border-white/10 p-4">
+                      <p className="font-semibold">Start here</p>
+                      <p className="text-sm text-zinc-400 mb-3">Load the built-in drums, or upload a song or video to chop.</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => s.loadKit()} className="h-10 px-4 rounded-full bg-white text-black text-sm font-semibold">Load drum kit</button>
+                        <button onClick={() => setTab('samples')} className="h-10 px-4 rounded-full bg-zinc-800 text-sm">Upload →</button>
+                      </div>
+                    </div>
                   )}
                   <PadGrid s={s} />
                 </>
               )}
+              {tab === 'beat' && <Sequencer s={s} />}
               {tab === 'samples' && <Library s={s} />}
               {tab === 'scenes' && <Scenes s={s} />}
             </motion.div>
@@ -63,7 +70,7 @@ export default function Home() {
       </div>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-zinc-950/90 backdrop-blur border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto max-w-xl grid grid-cols-3">
+        <div className="mx-auto max-w-xl grid grid-cols-4">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className="relative h-16 flex flex-col items-center justify-center gap-0.5 text-xs">
               {tab === t.id && <motion.span layoutId="tab" className="absolute top-0 h-0.5 w-10 bg-rose-500 rounded-full" />}

@@ -23,10 +23,12 @@ export default function PadGrid({ s }: { s: Studio }) {
   return (
     <div className="flex flex-col gap-4">
       <Transport s={s} editing={editing} setEditing={setEditing} />
+      <Tempo s={s} />
 
       <div className="grid grid-cols-4 gap-2 sm:gap-3 select-none touch-none">
         {s.pads.map((id, i) => {
           const smp = id ? s.byId[id] : null;
+          const keySmp = s.keysPad !== null && s.pads[s.keysPad] ? s.byId[s.pads[s.keysPad]!] : null;
           return (
             <motion.button
               key={i}
@@ -36,7 +38,7 @@ export default function PadGrid({ s }: { s: Studio }) {
               }}
               whileTap={{ scale: 0.92 }}
               className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-zinc-900 text-left p-2 shadow-[inset_0_-4px_0_rgba(0,0,0,.4)]"
-              style={{ borderColor: smp ? smp.color + '88' : undefined }}
+              style={{ borderColor: (keySmp ?? smp) ? (keySmp ?? smp)!.color + '88' : undefined }}
             >
               {/* hit flash */}
               <motion.span
@@ -45,11 +47,11 @@ export default function PadGrid({ s }: { s: Studio }) {
                 animate={{ opacity: 0 }}
                 transition={{ duration: 0.35 }}
                 className="absolute inset-0"
-                style={{ background: smp?.color ?? '#fff' }}
+                style={{ background: keySmp?.color ?? smp?.color ?? '#fff' }}
               />
               <span className="absolute top-1.5 right-2 text-[10px] text-zinc-500 uppercase hidden sm:block">{PAD_KEYS[i]}</span>
-              <span className="absolute bottom-1.5 left-2 right-2 text-[10px] sm:text-xs font-medium truncate" style={{ color: smp?.color ?? '#52525b' }}>
-                {smp ? smp.name : editing ? '+ assign' : ''}
+              <span className="absolute bottom-1.5 left-2 right-2 text-[10px] sm:text-xs font-medium truncate" style={{ color: keySmp?.color ?? smp?.color ?? '#52525b' }}>
+                {keySmp ? `+${i}` : smp ? smp.name : editing ? '+ assign' : ''}
               </span>
               {editing && <span className="absolute inset-0 border-2 border-dashed border-white/20 rounded-2xl" />}
             </motion.button>
@@ -120,6 +122,33 @@ function Transport({ s, editing, setEditing }: { s: Studio; editing: boolean; se
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** BPM, click, snap, keys — shared by live recording and the step sequencer. */
+export function Tempo({ s, keys = true }: { s: Studio; keys?: boolean }) {
+  const [msg, setMsg] = useState('');
+  const { bpm, click, snap } = s.settings;
+  const bump = (d: number) => s.setSettings({ bpm: Math.min(200, Math.max(50, bpm + d)) });
+  const chip = (on: boolean) => `h-9 px-3 rounded-full text-xs ${on ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400'}`;
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center h-9 rounded-full bg-zinc-800 text-sm">
+        <button onClick={() => bump(-5)} className="w-9 h-9 text-zinc-400">−</button>
+        <span className="tabular-nums w-14 text-center">{bpm} bpm</span>
+        <button onClick={() => bump(5)} className="w-9 h-9 text-zinc-400">+</button>
+      </div>
+      <button className={chip(click)} onClick={() => s.setSettings({ click: !click })}>Click</button>
+      <button className={chip(snap)} onClick={() => s.setSettings({ snap: !snap })}>Snap</button>
+      {keys && (
+        <button className={chip(s.keysPad !== null)} onClick={() => {
+          if (!s.toggleKeys()) { setMsg('Tap a pad first, then Keys'); setTimeout(() => setMsg(''), 2000); }
+        }}>
+          {s.keysPad !== null ? `Keys: ${s.byId[s.pads[s.keysPad]!]?.name ?? ''}` : 'Keys'}
+        </button>
+      )}
+      {msg && <span className="text-xs text-rose-400">{msg}</span>}
     </div>
   );
 }

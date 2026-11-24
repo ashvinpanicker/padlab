@@ -1,8 +1,8 @@
 'use client';
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { playSample } from '@/lib/audio';
-import type { Sample, Source } from '@/lib/types';
+import { playSample, voiceLength } from '@/lib/audio';
+import { DEFAULT_FX, type Sample, type Source } from '@/lib/types';
 import type { Studio } from '@/lib/useStudio';
 import ClipEditor from './ClipEditor';
 import Sheet from './Sheet';
@@ -33,6 +33,9 @@ export default function Library({ s }: { s: Studio }) {
         <span className="text-2xl">＋</span>
         <span className="text-sm">{busy ? 'Loading…' : 'Upload audio or video'}</span>
       </motion.button>
+      {!s.sources.some((x) => x.name === 'Drum kit') && (
+        <button onClick={() => s.loadKit()} className="-mt-3 h-11 rounded-xl bg-zinc-900 border border-white/5 text-sm text-zinc-300">＋ Add built-in drum kit</button>
+      )}
       <input ref={input} type="file" accept="audio/*,video/*,.mov,.m4a,.mp4" multiple hidden onChange={(e) => onFiles(e.target.files)} />
       {err && <p className="text-sm text-rose-400 -mt-4">{err}</p>}
 
@@ -54,7 +57,7 @@ export default function Library({ s }: { s: Studio }) {
             <Row key={smp.id} onClick={() => playSample(smp)}
               left={<span className="size-3 rounded-full" style={{ background: smp.color }} />}
               label={smp.name}
-              sub={`${(smp.end - smp.start).toFixed(2)}s${pad >= 0 ? ` · pad ${pad + 1}` : ''}`}
+              sub={`${voiceLength(smp).toFixed(2)}s${smp.fx && Object.keys(smp.fx).some((k) => (smp.fx as any)[k] !== (DEFAULT_FX as any)[k]) ? ' · fx' : ''}${pad >= 0 ? ` · pad ${pad + 1}` : ''}`}
               onEdit={() => src && setEdit({ source: src, sample: smp })}
               onDelete={() => s.removeSample(smp.id)} />
           );

@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { audioCtx, getBuffer, peaks, playSample } from '@/lib/audio';
-import { COLORS, PAD_COUNT, type Sample, type Source } from '@/lib/types';
+import { COLORS, DEFAULT_FX, PAD_COUNT, fxOf, type Fx, type Sample, type Source } from '@/lib/types';
+import FxPanel from './FxPanel';
 import type { Studio } from '@/lib/useStudio';
 
 const BINS = 600;
@@ -17,6 +18,7 @@ export default function ClipEditor({ s, source, sample, onDone }: { s: Studio; s
   const [color, setColor] = useState(sample?.color ?? COLORS[s.samples.length % COLORS.length]);
   const [pad, setPad] = useState<number | null>(sample ? s.pads.indexOf(sample.id) : s.pads.indexOf(null));
   const [head, setHead] = useState<number | null>(null);
+  const [fx, setFx] = useState<Fx>(sample ? fxOf(sample) : DEFAULT_FX);
 
   const canvas = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -75,13 +77,14 @@ export default function ClipEditor({ s, source, sample, onDone }: { s: Studio; s
 
   function playPreview() {
     stopPreview();
-    const node = playSample({ id: '_', sourceId: source.id, name, start, end, color, gain });
+    const node = playSample({ id: '_', sourceId: source.id, name, start, end, color, gain, fx });
     if (!node) return;
     const t0 = audioCtx().currentTime;
-    if (video.current) { video.current.currentTime = start; video.current.play().catch(() => {}); }
+    if (video.current && !fx.reverse) { video.current.currentTime = start; video.current.playbackRate = Math.min(4, Math.max(0.25, Math.pow(2, fx.semis / 12))); video.current.play().catch(() => {}); }
     const tick = () => {
-      const p = start + (audioCtx().currentTime - t0);
-      if (p >= end) return stopPreview();
+      const rate = Math.pow(2, fx.semis / 12 + fx.cents / 1200), el = (audioCtx().currentTime - t0) * rate;
+      const p = fx.reverse ? end - el : start + el;
+      if (p < start || p > end) return stopPreview();
       setHead(p);
       preview.current.raf = requestAnimationFrame(tick);
     };
@@ -93,7 +96,7 @@ export default function ClipEditor({ s, source, sample, onDone }: { s: Studio; s
 
   async function save(asNew = false) {
     stopPreview();
-    await s.saveSample({ id: asNew ? undefined : sample?.id, sourceId: source.id, name: name.trim() || 'Sample', start, end, gain, color }, pad !== null && pad >= 0 ? pad : null);
+    await s.saveSample({ id: asNew ? undefined : sample?.id, sourceId: source.id, name: name.trim() || 'Sample', start, end, gain, color, fx }, pad !== null && pad >= 0 ? pad : null);
     onDone();
   }
 
@@ -135,6 +138,8 @@ export default function ClipEditor({ s, source, sample, onDone }: { s: Studio; s
         className="h-11 rounded-xl bg-zinc-800 font-medium">
         {head === null ? `▶ Preview ${(end - start).toFixed(2)}s` : '■ Stop'}
       </motion.button>
+
+      <FxPanel fx={fx} setFx={setFx} />
 
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Sample name"
         className="h-11 px-3 rounded-xl bg-zinc-800 outline-none focus:ring-2 ring-white/20" />
