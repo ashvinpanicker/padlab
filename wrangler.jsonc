@@ -1,0 +1,6 @@
+// Static export (next build -> ./out) served as Workers static assets. No server runtime needed.
+{
+  "name": "padlab",
+  "compatibility_date": "2026-11-23",
+  "assets": { "directory": "./out", "not_found_handling": "404-page" }
+}
